@@ -382,7 +382,7 @@ const DEFAULTS = {
   text:"You don't need more motivation. You need to act now.", hl:['act','now'], quoteId:'', author:'',
   v:3, font:'Archivo Black', upper:false, autoSize:true, size:60, lineHeight:1.26, align:'left', margin:130, posY:45,
   markers:'line', quoteMark:false, bg:'solid', brandPos:'bottom',
-  anim:'slide', speed:100, duration:8, endingLogo:true, showHandle:true,
+  anim:'flow', speed:100, duration:8, endingLogo:true, showHandle:true,
   showAnimal:true, animal:'wolf', animalStyle:'mono', animalMode:'teleport', animalX:50, animalY:20,
   animalSize:96, animalOpacity:85, animalBlink:true, animalGlow:true, animalPulse:false,
   sfxType:true, sfxStyle:'soft', sfxImpact:true, sfxChime:true, sfxVol:75, music:'rise', musicVol:45, musicOffset:0,
@@ -465,7 +465,9 @@ function buildScene(s){
     ln.forEach(w=>words.push({...w,li,X:x0+w.x,Y:blockTop+(li+0.5)*lineH})); });
   const sp=s.speed/100, tIn=0.12, avail=Math.max(1,outroStart-0.9-(au?0.55:0)-tIn);
   let per=0.27/sp; if(words.length*per>avail) per=avail/words.length;
-  const wordDur=Math.min(0.36/sp,Math.max(0.12,per*2.2));
+  let wordDur=Math.min(0.36/sp,Math.max(0.12,per*2.2));
+  if(s.anim==='flow'){ // su gibi akış: tüm söz ~2.4 sn'de tamamlanır, kelimeler üst üste biner
+    const END=2.4, n=Math.max(1,words.length); wordDur=Math.min(1.1,Math.max(0.7,END*0.42)); per=n>1?Math.max(0.03,(END-tIn-wordDur)/(n-1)):0; }
   words.forEach((w,i)=>{ w.t0=tIn+i*per; });
   const revealEnd=tIn+Math.max(0,words.length-1)*per+wordDur;
   const lineStart=L.lines.map((_,li)=>words.find(w=>w.li===li).t0);
@@ -544,6 +546,7 @@ function drawFrame(c,sc,s,t,W,H,o={}){
     if(s.anim==='type'){ const n=Math.ceil(clamp((t-w.t0)/(sc.per*0.9))*w.txt.length), part=w.txt.slice(0,n); c.globalAlpha=al; c.fillText(part,x,y); if(n<w.txt.length||w===sc.words[sc.words.length-1]) caret=[x+c.measureText(part).width+6,y]; }
     else if(s.anim==='wipe'){ c.save(); c.globalAlpha=al; c.beginPath(); c.rect(x-4,y-sc.lineH/2,(w.w+8)*e,sc.lineH); c.clip(); c.fillText(w.txt,x,y); c.restore(); }
     else if(s.anim==='pop'){ const sc2=0.5+0.5*easeBack(p); c.save(); c.globalAlpha=al*clamp(p*3); c.translate(x+w.w/2,y); c.scale(sc2,sc2); c.fillText(w.txt,-w.w/2,0); c.restore(); }
+    else if(s.anim==='flow'){ const q=0.5-0.5*Math.cos(Math.PI*p), q2=1-Math.pow(1-p,3); c.save(); c.globalAlpha=al*q; if(p<1) c.filter=`blur(${((1-q2)*9).toFixed(1)}px)`; c.fillText(w.txt,x,y+30*(1-q2)); c.restore(); }
     else if(s.anim==='blur'){ c.save(); c.globalAlpha=al*e; if(p<1) c.filter=`blur(${((1-e)*16).toFixed(1)}px)`; c.fillText(w.txt,x,y); c.restore(); }
     else if(s.anim==='rise'){ c.globalAlpha=al*e; c.fillText(w.txt,x,y+48*(1-e)); }
     else{ c.globalAlpha=al*e; c.fillText(w.txt,x-72*(1-e),y); }
@@ -954,7 +957,7 @@ const CTRL={
     {k:'brandPos',t:'opts',l:'Küçük imza',o:[['bottom','Altta'],['top','Üstte'],['off','Gizli']]},
   ],
   hareket:[
-    {k:'anim',t:'opts',l:'Giriş animasyonu',o:[['slide','Kayarak'],['rise','Yükselerek'],['pop','Patlayarak'],['blur','Netleşerek'],['wipe','Silinerek'],['type','Daktilo']]},
+    {k:'anim',t:'opts',l:'Giriş animasyonu',o:[['flow','Su gibi akış'],['slide','Kayarak'],['rise','Yükselerek'],['pop','Patlayarak'],['blur','Netleşerek'],['wipe','Silinerek'],['type','Daktilo']]},
     {k:'speed',t:'range',l:'Animasyon hızı',min:30,max:300,step:5,f:v=>'%'+v},
     {k:'duration',t:'range',l:'Video süresi',min:5,max:20,step:.5,f:v=>(+v).toFixed(1)+' sn'},
     {k:'endingLogo',t:'sw',l:'Logo ile bitiş (son 1,4 sn)'},
